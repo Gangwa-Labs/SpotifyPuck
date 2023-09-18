@@ -40,9 +40,11 @@ class Hyperpixel2r:
         self._touched = False
 
     def _init_display(self):
+
         self._rawfb = False
         # Based on "Python GUI in Linux frame buffer"
         # http://www.karoltomala.com/blog/?p=679
+        pygame.init()
         DISPLAY = os.getenv("DISPLAY")
         if DISPLAY:
             print("Display: {0}".format(DISPLAY))
