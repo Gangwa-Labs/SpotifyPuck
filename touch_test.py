@@ -6,6 +6,7 @@ import math
 from hyperpixel2r import Touch
 import spotipy
 import sys
+import io
 import requests
 from spotipy.oauth2 import SpotifyOAuth
 from pygame.locals import *
