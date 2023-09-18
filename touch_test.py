@@ -17,7 +17,8 @@ if not SPOTIPY_CLIENT_SECRET:
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID,
                                                client_secret=SPOTIPY_CLIENT_SECRET,
                                                redirect_uri=SPOTIPY_REDIRECT_URI,
-                                               scope="user-modify-playback-state user-read-playback-state"))
+                                               scope="user-modify-playback-state user-read-playback-state",
+                                               open_browser=False))
 
 class Hyperpixel2r:
     screen = None
