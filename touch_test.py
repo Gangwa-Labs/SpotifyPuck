@@ -1,62 +1,120 @@
+#!/usr/bin/env python3
 import os
 import pygame
+import time
+import math
 from hyperpixel2r import Touch
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-
 SPOTIPY_CLIENT_ID = '3e64a448ffda4cb6ad51e8f0da677680'
 SPOTIPY_CLIENT_SECRET = os.environ['SPOTIPY_CLIENT_SECRET']
 SPOTIPY_REDIRECT_URI = 'https://localhost:8080'
 if not SPOTIPY_CLIENT_SECRET:
     raise ValueError("SPOTIPY_CLIENT_SECRET is not set in the environment variables.")
-
-# Initialize Spotify API
+# Initialize Spotify client
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID,
                                                client_secret=SPOTIPY_CLIENT_SECRET,
                                                redirect_uri=SPOTIPY_REDIRECT_URI,
-                                               scope="app-remote-control,user-modify-playback-state"))
+                                               scope="user-modify-playback-state"))
 
-# Initialize pygame
-pygame.init()
-screen = pygame.display.set_mode((480, 480))
-pygame.display.set_caption('Spotify Play/Pause')
+class Hyperpixel2r:
+    screen = None
 
-# Colors
-WHITE = (255, 255, 255)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
+    def __init__(self):
+        self._init_display()
 
-# Button dimensions
-button_x = 160
-button_y = 210
-button_width = 160
-button_height = 60
+        self.screen.fill((0, 0, 0))
+        self._updatefb()
 
-# Main loop
-running = True
-while running:
-    screen.fill(WHITE)
+        self._step = 0
+        self._steps = [
+            (255, 0, 0, 240, 100),  # Top
+            (0, 255, 0, 240, 380),  # Bottom
+            (255, 0, 0, 100, 240),  # Left
+            (0, 255, 0, 380, 240),  # Right
+            (0, 0, 255, 240, 240),  # Middle
+        ]
+        self._touched = False
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    def _init_display(self):
+        self._rawfb = False
+        # Based on "Python GUI in Linux frame buffer"
+        # http://www.karoltomala.com/blog/?p=679
+        DISPLAY = os.getenv("DISPLAY")
+        if DISPLAY:
+            print("Display: {0}".format(DISPLAY))
 
-    # Draw the play/pause button
-    pygame.draw.rect(screen, GREEN if sp.current_playback()['is_playing'] else RED,
-                     (button_x, button_y, button_width, button_height))
+        if os.getenv('SDL_VIDEODRIVER'):
+            print("Using driver specified by SDL_VIDEODRIVER: {}".format(os.getenv('SDL_VIDEODRIVER')))
+            pygame.display.init()
+            size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
+            if size == (480, 480): # Fix for 480x480 mode offset
+                size = (640, 480)
+            self.screen = pygame.display.set_mode(size, pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.NOFRAME | pygame.HWSURFACE)
+            return
 
-    touch = Touch()
+        else:
+            # Iterate through drivers and attempt to init/set_mode
+            for driver in ['rpi', 'kmsdrm', 'fbcon', 'directfb', 'svgalib']:
+                os.putenv('SDL_VIDEODRIVER', driver)
+                try:
+                    pygame.display.init()
+                    size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
+                    if size == (480, 480):  # Fix for 480x480 mode offset
+                        size = (640, 480)
+                    self.screen = pygame.display.set_mode(size, pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.NOFRAME | pygame.HWSURFACE)
+                    print("Using driver: {0}, Framebuffer size: {1:d} x {2:d}".format(driver, *size))
+                    return
+                except pygame.error as e:
+                    print('Driver "{0}" failed: {1}'.format(driver, e))
+                    continue
+                break
 
+        print("All SDL drivers failed, falling back to raw framebuffer access.")
+        self._rawfb = True
+        os.putenv('SDL_VIDEODRIVER', 'dummy')
+        pygame.display.init()  # Need to init for .convert() to work
+        self.screen = pygame.Surface((480, 480))
 
-    @touch.on_touch
-    def handle_touch(touch_id, x, y, state):
-        if state and button_x <= x <= button_x + button_width and button_y <= y <= button_y + button_height:
-            if sp.current_playback()['is_playing']:
-                sp.pause_playback()
-            else:
-                sp.start_playback()
+    def __del__(self):
+        "Destructor to make sure pygame shuts down, etc."
 
+    def _updatefb(self):
+        if not self._rawfb:
+            pygame.display.update()
+            return
 
-    pygame.display.flip()
+        fbdev = os.getenv('SDL_FBDEV', '/dev/fb0')
+        with open(fbdev, 'wb') as fb:
+            fb.write(self.screen.convert(16, 0).get_buffer())
 
-pygame.quit()
+    def touch(self, x, y, state):
+        if state:
+            # Define the coordinates for the Play/Pause button
+            button_x, button_y = 240, 240
+            distance = math.sqrt((button_x - x)**2 + (button_y - y)**2)
+            if distance < 90:
+                self._touched = True
+                self.toggle_playback()
+
+    def toggle_playback(self):
+        # Toggle Spotify playback
+        playback = sp.current_playback()
+        if playback and playback['is_playing']:
+            sp.pause_playback()
+        else:
+            sp.start_playback()
+
+    def display_button(self):
+        # Display the Play/Pause button
+        pygame.draw.circle(self.screen, (0, 255, 0), (240, 240), 90)
+        self._updatefb()
+
+display = Hyperpixel2r()
+touch = Touch()
+
+@touch.on_touch
+def handle_touch(touch_id, x, y, state):
+    display.touch(x, y, state)
+
+display.display_button()
