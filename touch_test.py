@@ -1,12 +1,19 @@
+import os
 import pygame
 from hyperpixel2r import Touch
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
+SPOTIPY_CLIENT_ID = '3e64a448ffda4cb6ad51e8f0da677680'
+SPOTIPY_CLIENT_SECRET = os.environ['SPOTIPY_CLIENT_SECRET']
+SPOTIPY_REDIRECT_URI = 'https://localhost:8080'
+if not SPOTIPY_CLIENT_SECRET:
+    raise ValueError("SPOTIPY_CLIENT_SECRET is not set in the environment variables.")
+
 # Initialize Spotify API
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id="YOUR_APP_CLIENT_ID",
-                                               client_secret="YOUR_APP_CLIENT_SECRET",
-                                               redirect_uri="YOUR_APP_REDIRECT_URI",
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID,
+                                               client_secret=SPOTIPY_CLIENT_SECRET,
+                                               redirect_uri=SPOTIPY_REDIRECT_URI,
                                                scope="app-remote-control,user-modify-playback-state"))
 
 # Initialize pygame
