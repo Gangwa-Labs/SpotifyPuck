@@ -120,3 +120,9 @@ def handle_touch(touch_id, x, y, state):
     display.touch(x, y, state)
 
 display.display_button()
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    time.sleep(0.1)
