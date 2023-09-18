@@ -5,6 +5,8 @@ import time
 import math
 from hyperpixel2r import Touch
 import spotipy
+import sys
+import requests
 from spotipy.oauth2 import SpotifyOAuth
 from pygame.locals import *
 
@@ -122,7 +124,12 @@ class Hyperpixel2r:
         playback = sp.current_playback()
         if playback and playback['item']:
             song_name = playback['item']['name']
-            artist_name = playback['item']['artists'][0]['name']  # Assuming one artist for simplicity
+            artist_name = playback['item']['artists'][0]['name']
+            album_cover_url = playback['item']['album']['images'][0]['url']  # Get the URL of the album cover
+
+            # Download the album cover
+            response = requests.get(album_cover_url)
+            album_cover = pygame.image.load(io.BytesIO(response.content))
 
             # Clear the screen
             self.screen.fill((0, 0, 0))
@@ -135,13 +142,29 @@ class Hyperpixel2r:
             song_surface = font.render(song_name, True, text_color)
             artist_surface = font.render(artist_name, True, text_color)
 
-            # Position the text
-            song_rect = song_surface.get_rect(center=(240, 220))
-            artist_rect = artist_surface.get_rect(center=(240, 260))
+            # Position the text lower and centered
+            song_rect = song_surface.get_rect(center=(240, 320))
+            artist_rect = artist_surface.get_rect(center=(240, 360))
 
             # Draw the text on the screen
             self.screen.blit(song_surface, song_rect)
             self.screen.blit(artist_surface, artist_rect)
+
+            # Display the album cover in the middle and make it spin
+            # Note: This is a basic implementation. You might need to adjust for the desired effect.
+            angle = 0
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+
+                rotated_cover = pygame.transform.rotate(album_cover, angle)
+                rect = rotated_cover.get_rect(center=(240, 240))
+                self.screen.blit(rotated_cover, rect.topleft)
+                pygame.display.flip()
+                angle += 1  # Adjust this value for faster or slower rotation
+                time.sleep(0.01)  # Adjust this value for smoother or choppier rotation
 
             # Update the display
             self._updatefb()
