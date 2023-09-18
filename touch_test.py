@@ -6,6 +6,7 @@ import math
 from hyperpixel2r import Touch
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from pygame.locals import *
 
 SPOTIPY_CLIENT_ID = '3e64a448ffda4cb6ad51e8f0da677680'
 SPOTIPY_CLIENT_SECRET = os.environ['SPOTIPY_CLIENT_SECRET']
@@ -16,7 +17,7 @@ if not SPOTIPY_CLIENT_SECRET:
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=SPOTIPY_CLIENT_ID,
                                                client_secret=SPOTIPY_CLIENT_SECRET,
                                                redirect_uri=SPOTIPY_REDIRECT_URI,
-                                               scope="user-modify-playback-state"))
+                                               scope="user-modify-playback-state user-read-playback-state"))
 
 class Hyperpixel2r:
     screen = None
@@ -111,6 +112,34 @@ class Hyperpixel2r:
         pygame.draw.circle(self.screen, (0, 255, 0), (240, 240), 90)
         self._updatefb()
 
+    def display_song_info(self):
+        # Fetch current song information
+        playback = sp.current_playback()
+        if playback and playback['item']:
+            song_name = playback['item']['name']
+            artist_name = playback['item']['artists'][0]['name']  # Assuming one artist for simplicity
+
+            # Clear the screen
+            self.screen.fill((0, 0, 0))
+
+            # Set up the font and colors
+            font = pygame.font.Font(None, 36)
+            text_color = (255, 255, 255)
+
+            # Render song name and artist
+            song_surface = font.render(song_name, True, text_color)
+            artist_surface = font.render(artist_name, True, text_color)
+
+            # Position the text
+            song_rect = song_surface.get_rect(center=(240, 220))
+            artist_rect = artist_surface.get_rect(center=(240, 260))
+
+            # Draw the text on the screen
+            self.screen.blit(song_surface, song_rect)
+            self.screen.blit(artist_surface, artist_rect)
+
+            # Update the display
+            self._updatefb()
 display = Hyperpixel2r()
 touch = Touch()
 
@@ -119,6 +148,8 @@ def handle_touch(touch_id, x, y, state):
     display.touch(x, y, state)
 
 display.display_button()
+display.display_song_info()
+
 running = True
 while running:
     for event in pygame.event.get():
