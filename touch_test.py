@@ -6,7 +6,6 @@ import math
 from hyperpixel2r import Touch
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-os.environ["SDL_FBDEV"] = "/dev/fb0"
 
 SPOTIPY_CLIENT_ID = '3e64a448ffda4cb6ad51e8f0da677680'
 SPOTIPY_CLIENT_SECRET = os.environ['SPOTIPY_CLIENT_SECRET']
