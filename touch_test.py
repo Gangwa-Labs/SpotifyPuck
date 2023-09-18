@@ -49,6 +49,7 @@ class Hyperpixel2r:
 
         if os.getenv('SDL_VIDEODRIVER'):
             print("Using driver specified by SDL_VIDEODRIVER: {}".format(os.getenv('SDL_VIDEODRIVER')))
+            pygame.init()
             pygame.display.init()
             pygame.font.init()
             size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
